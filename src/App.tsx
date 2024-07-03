@@ -1,24 +1,54 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { Car } from './types';
+import Card from './components/Card';
+import Map from './components/Map';
 
-function App() {
+
+
+const App: React.FC = () => {
+  const [cars, setCars] = useState<Car[]>([]);
+  const [sortField, setSortField] = useState<string>('year');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
+
+  useEffect(() => {
+    axios.get('https://test.tspb.su/test-task/vehicles')
+      .then(response => {
+        setCars(response.data);
+      });
+  }, []);
+
+  const handleSort = (field: string) => {
+    const order = (sortField === field && sortOrder === 'asc') ? 'desc' : 'asc';
+    setSortField(field);
+    setSortOrder(order);
+    setCars([...cars].sort((a, b) => {
+      if (a[field as keyof Car] > b[field as keyof Car]) {
+        return order === 'asc' ? 1 : -1;
+      } else {
+        return order === 'asc' ? -1 : 1;
+      }
+    }));
+  };
+
+  const handleEdit = (id: number, updatedCar: Partial<Car>) => {
+    setCars(cars.map(car => car.id === id ? { ...car, ...updatedCar } : car));
+  };
+
+  const handleDelete = (id: number) => {
+    setCars(cars.filter(car => car.id !== id));
+  };
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <button onClick={() => handleSort('year')}>Sort by Year</button>
+      <button onClick={() => handleSort('price')}>Sort by Price</button>
+      <div className='card-container'>
+        {cars.map(car => (
+          <Card key={car.id} car={car} onEdit={handleEdit} onDelete={handleDelete} />
+        ))}
+      </div>
+      <Map cars={cars} />
     </div>
   );
 }
